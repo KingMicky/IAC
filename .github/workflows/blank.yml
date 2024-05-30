@@ -1,36 +1,67 @@
-# This is a basic workflow to help you get started with Actions
-
 name: CI
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    push:
+      branches: 
+        - main
+      paths: 
+        - terraform/**
+    pull_request:
+      branches: 
+        - main
+      paths: 
+        - terraform/**
+env:
+    # credentials for deployment to AWS
+    AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_ID }}
+    # S3 bucket for the terraform state. 
+    BUCKET_KEY_STATE: ${{ secrets.BUCKET_KEY }}
+    AWS_REGION: us-east-1
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    terraform:
+        name: "Apply terraform code changes"
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                shell: bash
+                working-directory: ./terraform
+        steps:
+        - name: Checkout source code 
+          uses: actions/checkout@v4
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+        - name: Setup Terraform with specified version on the runner
+          uses: hashicorp/setup-terraform@v3
 
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
+        - name: Terraform Init
+          id: init
+          run: terraform init -backend-config "bucket=$BUCKET_KEY_STATE"
 
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
-        run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+        - name: Terraform Format
+          id: fmt
+          run: terraform fmt -check
+          continue-on-error: true 
+
+        - name: Terraform Validate
+          id: validate
+          run: terraform validate
+
+        - name: Terraform Plan
+          id: plan
+          run: terraform plan -no-color -input=false -out planfile
+          continue-on-error: true 
+
+        - name: Terraform Plan Status 
+          if: steps.plan.outcome == 'failure'
+          run: exit 1
+
+        - name: Terraform Apply
+          id: apply
+          if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+          run: terraform apply -auto-approve -input=false -parallelism=1 planfile
+
+
+
+
+        
