@@ -4,11 +4,11 @@ on:
     push:
       branches: [ "main"]
       paths: 
-        - terraform/**
+        - Terraform/**
     pull_request:
       branches: [ "main"]
       paths: 
-        - terraform/**
+        - Terraform/**
 env:
     # credentials for deployment to AWS
     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
