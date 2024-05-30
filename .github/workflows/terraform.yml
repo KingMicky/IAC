@@ -9,51 +9,57 @@ on:
     paths: terraform/**
 
 env:
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  BUCKET_KEY_STATE: ${{ secrets.BUCKET_KEY }}
-  AWS_REGION: us-east-1
+    AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_ID }} 
+    BUCKET_KEY_STATE: ${{ secrets.BUCKET_KEY }}
+    AWS_REGION: us-east-1
 
 jobs:
   terraform:
     name: 'Terraform'
     runs-on: ubuntu-latest
 
+    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
     defaults:
       run:
         shell: bash
         working-directory: ./terraform
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    # Checkout the repository to the GitHub Actions runner
+    - name: Checkout
+      uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
+    # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
 
-      - name: Terraform Init
-        id: init
-        run: terraform init -backend-config "bucket=$BUCKET_KEY_STATE"
+    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+    - name: Terraform Init
+      id: init
+      run: terraform init -backend-config "bucket=$BUCKET_KEY_STATE"
 
-      - name: Terraform Format
-        id: fmt
-        run: terraform fmt -check
-        continue-on-error: true
+    # Checks that all Terraform configuration files adhere to a canonical format
+    - name: Terraform Format
+      id: fmt
+      run: terraform fmt -check
+      continue-on-error: true
 
-      - name: Terraform Validate
-        id: validate
-        run: terraform validate
+    - name: Terraform Validate
+      id: validate
+      run: terraform validate
 
-      - name: Terraform Plan
-        id: plan
-        run: terraform plan -no-color -input=false -out planfile
-        continue-on-error: true
+    # Generates an execution plan for Terraform
+    - name: Terraform Plan
+      id: plan
+      run: terraform plan -no-color -input=false -out planfile
+      continue-on-error: true
 
-      - name: Terraform Plan Status 
-        if: steps.plan.outcome == 'failure'
-        run: exit 1  
+    - name: Terraform Plan Status 
+      if: steps.plan.outcome == 'failure'
+      run: exit 1  
 
-      - name: Terraform Apply
-        id: apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform apply -auto-approve -input=false -parallelism=1 planfile
+    - name: Terraform Apply
+      id: apply 
+      if: steps.plan.outcome == 'failure'
+      run: exit 1
