@@ -1,3 +1,8 @@
+variable "ami_id" {}
+variable "instance_type" {}
+variable "key_name" {}
+variable "instance_name" {}
+
 resource "aws_instance" "ec2" {
   ami                    = var.ami_id
   instance_type          = var.instance_type
