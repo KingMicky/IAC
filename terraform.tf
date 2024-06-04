@@ -9,7 +9,7 @@ terraform {
   backend "s3" {
     bucket = "devopswithkachi"
     key    = "terraform.tfstate"
-    region = "eu-north-1a"
+    region = "eu-north-1"
   }
 
   required_version = ">= 1.6.3"
