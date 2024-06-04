@@ -54,3 +54,12 @@ jobs:
       id: plan
       run: terraform plan -no-color -input=false -out planfile
       continue-on-error: true
+
+    - name: Terraform Plan status
+      if: steps.plan.outcome == 'failure'  # Single line for readability
+      run: exit 1    
+
+
+    - name: Terraform Apply
+      if:  steps.plan.outcome == 'failure'
+      run: exit 1
